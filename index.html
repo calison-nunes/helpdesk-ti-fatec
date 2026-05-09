@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HelpDesk TI - FATEC</title>
+    <link rel="icon" type="image/png" href="Images/favicon.png">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="estilo.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+
+<body class="bg-slate-100 min-h-screen flex flex-col items-center justify-center p-4">
+
+    <div id="auth-section" class="bg-white p-8 rounded-xl shadow-lg w-full max-w-md">
+        <h1 class="text-3xl font-bold text-center text-blue-600 mb-6">HelpDesk TI 🖥️</h1>
+
+        <div id="login-form">
+            <h2 class="text-xl font-semibold mb-4 text-gray-700">Acesso ao Sistema</h2>
+
+            <input type="email" id="login-email" placeholder="E-mail do analista"
+                class="w-full p-3 mb-4 border border-gray-300 rounded-lg">
+            <input type="password" id="login-senha" placeholder="Senha"
+                class="w-full p-3 mb-6 border border-gray-300 rounded-lg">
+
+            <button onclick="fazerLogin()"
+                class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700">Entrar</button>
+
+            <p class="mt-4 text-center text-sm text-gray-500">
+                Novo analista? <button onclick="alternarTelasAuth('register-form')"
+                    class="text-blue-600 font-semibold hover:underline">Criar conta</button>
+            </p>
+        </div>
+
+        <div id="register-form" class="hidden">
+            <h2 class="text-xl font-semibold mb-4 text-gray-700">Cadastrar Analista</h2>
+
+            <input type="text" id="reg-nome" placeholder="Nome Completo"
+                class="w-full p-3 mb-4 border border-gray-300 rounded-lg">
+            <input type="email" id="reg-email" placeholder="E-mail"
+                class="w-full p-3 mb-4 border border-gray-300 rounded-lg">
+            <input type="password" id="reg-senha" placeholder="Crie uma senha"
+                class="w-full p-3 mb-6 border border-gray-300 rounded-lg">
+
+            <button onclick="cadastrarUsuario()"
+                class="w-full bg-green-600 text-white font-bold py-3 rounded-lg hover:bg-green-700">Salvar
+                Cadastro</button>
+
+            <p class="mt-4 text-center text-sm text-gray-500">
+                Já tem conta? <button onclick="alternarTelasAuth('login-form')"
+                    class="text-blue-600 font-semibold hover:underline">Fazer Login</button>
+            </p>
+        </div>
+    </div>
+
+
+    <div id="dashboard-section" class="hidden w-full max-w-5xl">
+
+        <div class="flex justify-between items-center mb-6 bg-white p-6 rounded-xl shadow-md">
+            <div>
+                <h1 class="text-2xl font-bold text-blue-600">Painel de Chamados</h1>
+                <p class="text-gray-600" id="user-greeting">Bem-vindo(a)!</p>
+            </div>
+            <button onclick="fazerLogout()"
+                class="bg-red-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-600">Sair do
+                sistema</button>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow-md mb-6">
+            <h2 class="text-xl font-semibold mb-4 text-gray-700">Abrir Novo Chamado</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <input type="text" id="chamado-titulo" placeholder="Título do problema (ex: PC não liga)"
+                    class="col-span-1 md:col-span-2 p-3 border border-gray-300 rounded-lg">
+                <select id="chamado-urgencia" class="p-3 border border-gray-300 rounded-lg">
+                    <option value="Baixa">Urgência: Baixa</option>
+                    <option value="Média" selected>Urgência: Média</option>
+                    <option value="Alta">Urgência: Alta</option>
+                </select>
+            </div>
+            <textarea id="chamado-descricao" placeholder="Descreva o que está acontecendo..."
+                class="w-full p-3 border border-gray-300 rounded-lg mb-4 h-24"></textarea>
+
+            <button onclick="criarChamado()"
+                class="bg-green-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-green-700">Salvar
+                Chamado</button>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow-md">
+            <h2 class="text-xl font-semibold mb-4 text-gray-700">Chamados no Banco de Dados</h2>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-100 text-gray-600">
+                            <th class="p-3">ID</th>
+                            <th class="p-3">Título</th>
+                            <th class="p-3">Urgência</th>
+                            <th class="p-3">Status</th>
+                            <th class="p-3">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabela-chamados">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
