@@ -1,12 +1,9 @@
 // ==========================================
 // CONFIGURAÇÕES INICIAIS DO SUPABASE
 // ==========================================
-
-// Colei a URL e a KEY públicas que peguei nas configurações do projeto lá no Supabase
 const SUPABASE_URL = 'https://fazysaycvldmxpquuokw.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZhenlzYXljdmxkbXhwcXV1b2t3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzNTI2MzksImV4cCI6MjA5MzkyODYzOX0.NaDzS6UvOzklC1d_qRe9W_FijW4pZOTf7ZKfpifbx-Y';
 
-// Isso aqui é obrigatório na documentação do Supabase pra API REST funcionar
 const HEADERS = {
     'apikey': SUPABASE_KEY,
     'Authorization': `Bearer ${SUPABASE_KEY}`,
@@ -14,39 +11,48 @@ const HEADERS = {
     'Prefer': 'return=representation'
 };
 
-// Variável pra eu saber qual analista fez o login pra poder vincular o ID dele nos chamados
 let usuarioLogado = null;
+let chamadosGlobais = [];
 
+// ==========================================
+// 0. FUNÇÕES DO DARK MODE
+// ==========================================
+
+if (localStorage.getItem('tema-helpdesk') === 'escuro') {
+    document.documentElement.classList.add('dark');
+}
+
+function toggleDarkMode() {
+    document.documentElement.classList.toggle('dark');
+    
+    if (document.documentElement.classList.contains('dark')) {
+        localStorage.setItem('tema-helpdesk', 'escuro');
+    } else {
+        localStorage.setItem('tema-helpdesk', 'claro');
+    }
+}
 
 // ==========================================
 // 1. FUNÇÕES DA TELA DE LOGIN E CADASTRO
 // ==========================================
 
-// Função simples pra esconder o formulário de login e mostrar o de cadastro (e vice-versa)
 function alternarTelasAuth(telaParaMostrar) {
     document.getElementById('login-form').classList.add('hidden');
     document.getElementById('register-form').classList.add('hidden');
-
-    // Mostra só a tela que a gente pediu
     document.getElementById(telaParaMostrar).classList.remove('hidden');
 }
 
-// CREATE (Criar Usuário)
-// Tem que ser async porque a gente precisa esperar (await) o banco responder
 async function cadastrarUsuario() {
-    // Pegando os valores que o usuário digitou nas caixinhas
     const nome = document.getElementById('reg-nome').value;
     const email = document.getElementById('reg-email').value;
     const senha = document.getElementById('reg-senha').value;
 
-    // Validação básica pra não mandar pro banco vazio
     if (nome == "" || email == "" || senha == "") {
         Swal.fire('Opa!', 'Preencha todos os campos pra cadastrar.', 'warning');
-        return; // Para a função aqui
+        return; 
     }
 
     try {
-        // Disparando o POST pro Supabase
         const resposta = await fetch(`${SUPABASE_URL}/rest/v1/analistas`, {
             method: 'POST',
             headers: HEADERS,
@@ -54,13 +60,13 @@ async function cadastrarUsuario() {
                 nome: nome,
                 email: email,
                 senha: senha,
-                cargo: 'Suporte Técnico' // Coloquei cargo padrão pra facilitar
+                cargo: 'Suporte Técnico' 
             })
         });
 
         if (resposta.ok) {
             Swal.fire('Boa!', 'Cadastro feito com sucesso. Faça login.', 'success');
-            alternarTelasAuth('login-form'); // Volta pra tela de login
+            alternarTelasAuth('login-form'); 
         } else {
             console.log("Deu erro ao salvar:", await resposta.json());
             Swal.fire('Erro', 'Não foi possível cadastrar (E-mail já existe?)', 'error');
@@ -70,7 +76,6 @@ async function cadastrarUsuario() {
     }
 }
 
-// READ (Verificar se o usuário existe para fazer o Login)
 async function fazerLogin() {
     const emailDigitado = document.getElementById('login-email').value;
     const senhaDigitada = document.getElementById('login-senha').value;
@@ -81,29 +86,20 @@ async function fazerLogin() {
     }
 
     try {
-        // Busca na tabela verificando se o e-mail E a senha batem com o que tá no banco (eq = equals/igual)
         const resposta = await fetch(`${SUPABASE_URL}/rest/v1/analistas?email=eq.${emailDigitado}&senha=eq.${senhaDigitada}`, {
             method: 'GET',
             headers: HEADERS
         });
 
-        // Transforma o retorno em JSON (vira uma lista/array)
         const listaDeUsuarios = await resposta.json();
-        console.log("Retorno do login:", listaDeUsuarios);
 
-        // Se a lista tiver pelo menos 1 item, é porque achou o usuário
         if (listaDeUsuarios.length > 0) {
-            // Guarda as informações daquele usuário na nossa variável global
             usuarioLogado = listaDeUsuarios[0];
 
-            // Esconde a área pública e mostra o painel restrito
             document.getElementById('auth-section').classList.add('hidden');
             document.getElementById('dashboard-section').classList.remove('hidden');
-
-            // Coloca o nome dele na tela
             document.getElementById('user-greeting').innerText = `Analista: ${usuarioLogado.nome}`;
 
-            // Puxa os chamados pra preencher a tabela
             carregarChamados();
         } else {
             Swal.fire('Acesso Negado', 'E-mail ou senha errados.', 'error');
@@ -113,14 +109,12 @@ async function fazerLogin() {
     }
 }
 
-// Botão de Sair (Limpa os dados e volta pro login)
 function fazerLogout() {
-    usuarioLogado = null; // Zera o usuário
+    usuarioLogado = null; 
 
     document.getElementById('dashboard-section').classList.add('hidden');
     document.getElementById('auth-section').classList.remove('hidden');
 
-    // Limpa as caixinhas de input
     document.getElementById('login-email').value = '';
     document.getElementById('login-senha').value = '';
 }
@@ -130,7 +124,6 @@ function fazerLogout() {
 // 2. FUNÇÕES DO CRUD DOS CHAMADOS
 // ==========================================
 
-// CREATE (Criar Chamado)
 async function criarChamado() {
     const titulo = document.getElementById('chamado-titulo').value;
     const urgencia = document.getElementById('chamado-urgencia').value;
@@ -141,13 +134,12 @@ async function criarChamado() {
         return;
     }
 
-    // Montando o pacote de dados que vai pro Supabase
     const dadosDoChamado = {
         titulo: titulo,
         descricao: descricao,
         urgencia: urgencia,
         status: 'Aberto',
-        analista_id: usuarioLogado.id // FK obrigatória: Linka o chamado com quem tá logado
+        analista_id: usuarioLogado.id 
     };
 
     try {
@@ -160,11 +152,9 @@ async function criarChamado() {
         if (resposta.ok) {
             Swal.fire('Pronto!', 'Chamado salvo no banco de dados.', 'success');
 
-            // Limpa as caixas de texto
             document.getElementById('chamado-titulo').value = '';
             document.getElementById('chamado-descricao').value = '';
 
-            // Atualiza a tabela pra mostrar o chamado novo
             carregarChamados();
         }
     } catch (erro) {
@@ -172,42 +162,45 @@ async function criarChamado() {
     }
 }
 
-// READ (Listar os chamados na tabela)
 async function carregarChamados() {
     try {
-        // Puxa todos os chamados. O order=id.desc traz do mais novo pro mais velho
         const resposta = await fetch(`${SUPABASE_URL}/rest/v1/chamados?order=id.desc`, {
             method: 'GET',
             headers: HEADERS
         });
 
         const listaDeChamados = await resposta.json();
-        console.log("Chamados carregados do banco:", listaDeChamados);
+        chamadosGlobais = listaDeChamados; 
 
-        // Pega a tabela no HTML e limpa ela antes de preencher de novo
         const corpoTabela = document.getElementById('tabela-chamados');
         corpoTabela.innerHTML = '';
 
-        // Faz um loop (laço de repetição) em todos os chamados que vieram do banco
         listaDeChamados.forEach(function (chamado) {
-
-            // Criando a linha da tabela (tr)
             const linha = document.createElement('tr');
-            linha.className = 'border-b hover:bg-slate-50'; // Classes do Tailwind pra ficar bonito
+            linha.className = 'border-b dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors'; 
 
-            // Preenchendo a linha com os dados (td)
+            // Cores do Status
+            let corStatus = 'text-blue-600 dark:text-blue-400';
+            if (chamado.status === 'Fechado') corStatus = 'text-green-600 dark:text-green-400';
+            if (chamado.status === 'Em Andamento') corStatus = 'text-amber-500 dark:text-amber-400';
+
+            // Cores da Urgência (Adicionadas as classes dark)
+            let corUrgencia = 'text-yellow-600 dark:text-yellow-400'; // Default: Média
+            if (chamado.urgencia === 'Alta') corUrgencia = 'text-red-600 dark:text-red-400';
+            if (chamado.urgencia === 'Baixa') corUrgencia = 'text-green-600 dark:text-green-400';
+
             linha.innerHTML = `
-                <td class="p-3 text-slate-500">#${chamado.id}</td>
-                <td class="p-3 font-semibold text-slate-700">${chamado.titulo}</td>
-                <td class="p-3 text-sm font-bold">${chamado.urgencia}</td>
-                <td class="p-3 font-medium text-blue-600">${chamado.status}</td>
-                <td class="p-3">
-                    <button onclick="atualizarStatus(${chamado.id})" class="text-blue-500 hover:text-blue-700 mr-3">Resolver</button>
-                    <button onclick="deletarChamado(${chamado.id})" class="text-red-500 hover:text-red-700">Deletar</button>
+                <td class="p-3 text-slate-500 dark:text-slate-400">#${chamado.id}</td>
+                <td class="p-3 font-semibold text-slate-700 dark:text-gray-200">${chamado.titulo}</td>
+                <td class="p-3 text-sm font-bold ${corUrgencia}">${chamado.urgencia}</td>
+                <td class="p-3 font-medium ${corStatus}">${chamado.status}</td>
+                <td class="p-3 flex gap-3">
+                    <button onclick="verDetalhes(${chamado.id})" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white font-semibold transition">👁️ Detalhes</button>
+                    <button onclick="atualizarStatus(${chamado.id})" class="text-blue-500 hover:text-blue-700 dark:hover:text-blue-300 font-semibold transition">⚙️ Status</button>
+                    <button onclick="deletarChamado(${chamado.id})" class="text-red-500 hover:text-red-700 dark:hover:text-red-400 font-semibold transition">🗑️ Deletar</button>
                 </td>
             `;
 
-            // Joga a linha dentro da tabela
             corpoTabela.appendChild(linha);
         });
     } catch (erro) {
@@ -215,28 +208,66 @@ async function carregarChamados() {
     }
 }
 
-// UPDATE (Mudar o status do chamado pra Resolvido/Fechado)
-async function atualizarStatus(idDoChamado) {
-    try {
-        // O PATCH serve pra atualizar só uma parte da tabela (no caso, o status)
-        const resposta = await fetch(`${SUPABASE_URL}/rest/v1/chamados?id=eq.${idDoChamado}`, {
-            method: 'PATCH',
-            headers: HEADERS,
-            body: JSON.stringify({ status: 'Fechado' })
+function verDetalhes(idDoChamado) {
+    const chamado = chamadosGlobais.find(c => c.id === idDoChamado);
+    
+    if(chamado) {
+        Swal.fire({
+            title: `Chamado #${chamado.id}`,
+            html: `
+                <div class="text-left mt-2">
+                    <p><strong>Problema:</strong> ${chamado.titulo}</p>
+                    <p class="mt-3"><strong>Descrição detalhada:</strong></p>
+                    <p class="mt-1 p-3 bg-gray-100 rounded border border-gray-200 text-gray-700">${chamado.descricao}</p>
+                </div>
+            `,
+            icon: 'info',
+            confirmButtonColor: '#3085d6',
+            confirmButtonText: 'Fechar'
         });
-
-        if (resposta.ok) {
-            Swal.fire('Sucesso', 'Você fechou este chamado.', 'success');
-            carregarChamados(); // Atualiza a tela pra mostrar a mudança
-        }
-    } catch (erro) {
-        Swal.fire('Erro', 'Não consegui atualizar.', 'error');
     }
 }
 
-// DELETE (Excluir o chamado do banco)
+async function atualizarStatus(idDoChamado) {
+    const chamado = chamadosGlobais.find(c => c.id === idDoChamado);
+    const statusAtual = chamado ? chamado.status : 'Aberto';
+
+    const { value: novoStatus } = await Swal.fire({
+        title: 'Alterar Status do Chamado',
+        input: 'select',
+        inputOptions: {
+            'Aberto': 'Aberto',
+            'Em Andamento': 'Em Andamento',
+            'Fechado': 'Fechado'
+        },
+        inputValue: statusAtual,
+        inputPlaceholder: 'Selecione o novo status',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Salvar',
+        cancelButtonText: 'Cancelar'
+    });
+
+    if (novoStatus) {
+        try {
+            const resposta = await fetch(`${SUPABASE_URL}/rest/v1/chamados?id=eq.${idDoChamado}`, {
+                method: 'PATCH',
+                headers: HEADERS,
+                body: JSON.stringify({ status: novoStatus })
+            });
+
+            if (resposta.ok) {
+                Swal.fire('Atualizado!', `O chamado agora está como: ${novoStatus}`, 'success');
+                carregarChamados();
+            }
+        } catch (erro) {
+            Swal.fire('Erro', 'Não consegui atualizar o status.', 'error');
+        }
+    }
+}
+
 async function deletarChamado(idDoChamado) {
-    // Usando o SweetAlert pra perguntar se o cara tem certeza
     const confirmacao = await Swal.fire({
         title: 'Certeza?',
         text: "Isso vai apagar direto do banco de dados!",
@@ -248,7 +279,6 @@ async function deletarChamado(idDoChamado) {
         cancelButtonText: 'Cancelar'
     });
 
-    // Se ele clicou em "Sim, pode apagar"
     if (confirmacao.isConfirmed) {
         try {
             const resposta = await fetch(`${SUPABASE_URL}/rest/v1/chamados?id=eq.${idDoChamado}`, {
@@ -258,7 +288,7 @@ async function deletarChamado(idDoChamado) {
 
             if (resposta.ok) {
                 Swal.fire('Deletado!', 'Sumiu do banco.', 'success');
-                carregarChamados(); // Atualiza a tela pra sumir a linha
+                carregarChamados(); 
             }
         } catch (erro) {
             Swal.fire('Erro', 'Problema ao deletar.', 'error');
